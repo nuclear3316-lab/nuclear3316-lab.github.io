@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Página compartida</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f4f2;
+        --surface: #ffffff;
+        --ink: #1c1e21;
+        --ink-soft: #5a6068;
+        --line: #d9d9d4;
+        --field-bg: #ffffff;
+        --accent: #205c4d;
+        --accent-hover: #184739;
+        --accent-ink: #ffffff;
+        --error-bg: #fbeae8;
+        --error-ink: #8f1d12;
+        --error-line: #e5b6b0;
+        --focus: #205c4d;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14161a;
+          --surface: #1e2126;
+          --ink: #ecedef;
+          --ink-soft: #a3a9b1;
+          --line: #34383f;
+          --field-bg: #17191d;
+          --accent: #3d9b80;
+          --accent-hover: #4db095;
+          --accent-ink: #0e1512;
+          --error-bg: #3a1e1b;
+          --error-ink: #f0a99f;
+          --error-line: #6e3a34;
+          --focus: #3d9b80;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+      }
+      main {
+        width: 100%;
+        max-width: 380px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 32px 28px 28px;
+      }
+      .lock {
+        width: 44px;
+        height: 44px;
+        margin-bottom: 18px;
+        color: var(--accent);
+      }
+      h1 {
+        font-size: 1.35rem;
+        line-height: 1.25;
+        margin: 0 0 8px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      p.intro {
+        margin: 0 0 22px;
+        color: var(--ink-soft);
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .field-row {
+        display: flex;
+        gap: 8px;
+      }
+      input[type="password"],
+      input[type="text"] {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 44px;
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 1rem;
+        color: var(--ink);
+        background: var(--field-bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      input:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+        border-color: var(--focus);
+      }
+      .toggle {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 12px;
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .toggle:hover { color: var(--ink); }
+      button.unlock {
+        width: 100%;
+        min-height: 46px;
+        margin-top: 16px;
+        padding: 11px 16px;
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 650;
+        color: var(--accent-ink);
+        background: var(--accent);
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button.unlock:hover:not(:disabled) { background: var(--accent-hover); }
+      button.unlock:disabled { opacity: 0.6; cursor: wait; }
+      button:focus-visible, .toggle:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      .error {
+        display: none;
+        margin-top: 16px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        color: var(--error-ink);
+        background: var(--error-bg);
+        border: 1px solid var(--error-line);
+        border-radius: 6px;
+      }
+      .error.visible { display: block; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4.5" y="10.5" width="15" height="9.5" rx="2"></rect>
+          <path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"></path>
+          <circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"></circle>
+        </svg>
+        <h1>Página compartida</h1>
+        <p class="intro">Esta página está protegida. Escribe la contraseña para ver su contenido.</p>
+        <form id="form-desbloqueo" novalidate>
+          <label for="campo-contrasena">Contraseña</label>
+          <div class="field-row">
+            <input type="password" id="campo-contrasena" name="contrasena" autocomplete="current-password" autocapitalize="none" spellcheck="false" required />
+            <button type="button" class="toggle" id="boton-mostrar" aria-pressed="false">Mostrar</button>
+          </div>
+          <button type="submit" class="unlock" id="boton-desbloquear">Desbloquear</button>
+          <p class="error" id="mensaje-error" role="alert"></p>
+        </form>
+      </div>
+    </main>
+
+    <!-- Paquete encriptado: texto opaco, no interpretar ni mostrar. -->
+    <script type="text/plain" id="paquete-encriptado">{"v":1,"kdf":"PBKDF2-SHA256","iter":210000,"salt":"z2+t0YecDfzzpNftYH2gQg==","iv":"PJ7gYH/9jHr6p0h/","data":"3xT3jmsDm62iWZq5WF41e4FtFyuTPCWYIP6B2FUk9djrZfrqJJMesDur2qMAwQK3W0zF/Ro8O9Pmz4N4fV9Fntnn1Dup9fE9M7l6tz1+sy3eRvR/b1lm5Nutl4kM/ezQ2zhcJu5TEu8Ezd0VOKNXhLKxYAIcZrI2W2ycpSxucFUBAEOsn8qKwa5QR8k0L6zH4lMnGY+sQA7sPXQxR9Zk0GwlMI1zL2HIPnPUz6nIC627vEr8Rdbm14CB4laSiq5I5ybL7S/IRg8W29yMackEON2Jp9FjlvlmpzRBXfCxSsVUkl2Czcw7x7/aRE46pJnzME2uy+YI/tasHii3sSIvjAsD1AE2M6/VHA8wNRN3ATQAlIZLYzpZFGXAdLvzG8wiWWEgij9zXLWGqnteQpKz8WaqK5QTSj2/Cd+NOrrPtsy4+ZiwNanWjCLgIf6Us8ry8bAnVEVHIFDPFrVH7+cnP1OTMwgNYhqm2k+ASiuN31UP/kaQgq22qKNaZpyeJ9Wir7graJOVXULNtyqGnueyUS3FBKou9DzeGTQhUvqlplZ6Q07WbQDCM5yVYwnAttRYuLgZm/ovuFcPoGoRYvmAqNj3OcIMAJOxQw8QMm7G7v9f4j6GghlEsnFCT41FqnRGSX+8+Uu1PqfQLm2RySHXMfdQoT5O7niNle4rOlGB7sgrXOLUIs7nJWh0UmkNjHxjdCYkRVABLAgvot1WJale3rQqUkYI2jaOolpzIvP4cYw2et1vEg9kigSXfXHCdqFR8H+O38eQqbJ78AiCbWeFK/h3Z82gFdYoQSpEonD/Xuw0miOPSqPPInuvY7mht7YUXzoOZidkbYTUG/skv/PEaSZ4QZAidyx1Eu6OY3PtxFFqiHGPoaicAY0vg3It6JpN3RLFkzfxwYA5dFrRpN8uF8Iy1KjZXxgWivMsx+4KOwPUAQ6IDeekSChrOOau9ksR5WCOlH1HI/8CoiNBwyogxebHa/fB9AXg3zEfOkGMHKD9A7StrCPThQ9LqMqinDXIBJV5fFsOQOk1Jm3Z20gqTAT8tpqpJ/fY6kG5eESMTTXyhMt8+oloiwrWj1lvKTQT1y9hc1eZ4ObAW6SZ8ZjfACb4+jvc4er2unb8wAWbpH+8nt/Sis93fdUcJoRDTDC8zt+xTD1bodSmi+VuX9/XLs31A4igWsk5KA1/rMvja7KQWDnD8NYX0cpnEdmPHMNZ+4QhaFJvkj/qXJ6Od+SY2wq+mNCYiFlb8LLmJdV9uox83W+1vHM5eFvwktIadSOZUR2+jznBWD48ScdIFnoW48hkTFn33eUEgtwXC/fJHYofrTfMaslVewKq5Y6f6DPaNgpdfHW/hTTCDEE+HSkxqE7HQCQAx+XG+jk2uxjIqYKAfjrKTRoVi0P5LmXOy+OAR09mjRFCjlT0d5pn5LvfzlSgU9nrjSTCHgUs+CZUmV8c6V5a78J1whs58UE6uRM3ZZLwkoUmTdpOYuTXqd5sU/2flVgKR1cOMclEFegJjflUX1OPGoKX4qKE9n9kdPWXtv+4gJfhO+OJ1mieW9ogJdrFDuDpCdSHGhABO9XWI1kVsD8rWpZ7K6RcVXltBVsIGHmaiIdbo+DJD/l80WBz0jlFRvB2xeC/e99xGMLM23ktXAJ/k3lJZvAzZDyPrW1IYwuHZwkPuFWtkNqWD1++60Dp63MlgbU5eijEj/TkYJiRPe8nh+45b9MrlihA+Ysww4TlMyWC5SAQjbUOxE3cwy8/+YBeql9dIjot+mifQ9ihx/WwBPK1LftvyNRSNw2HpvJvtHQ/hzz6nskMnBtS4CVs5NU84gQ7jHTHLbttgGFFcKtpdjXPZs8AoQg2g+Wm7TNsk7dH0ShOE4yyXiOSyLOqb+Zq0zrL9jdmBdLqYfRXJ3stkdbyq9CdrA3Rr8ugMdy9o2sA+EznrpS0VONnljE+DqNp+BZ3eOFRrr38+bqvqjMwYyGfQWlYSrbqoWb4LKoYGyIlALn4ixt54k7tR55rDQ06RBRmBfZETgHwq3KvtJn4/TAES6ISVPiMJoTWaBdK8d1nlKskoONeh9tkjaj8+I1KzvRNVD1llfdSoKchpo+fLHsa3TeoXveDcGs+qfLBeuKVUimQeqXeMMy08P49p91rHhmOI9ZRe44v9xByWRRFGm5792+6TPFjxItT/Jk8+YYMieLThEooi1rtg1I/zgXIQ2jGBkO/Zd/PpDQR2VKJrsuW6khWntbVeouHX/vuYjpVUxTRedFXUOgG5U0pO6duY1HEdJG2A3aeyLke52eJcsxKGi0hTgPhsVZiJz2ohOWwtFXbqhbAFEdqWgYApewiuobQIJ+fHiZ9e0oO2LeS8ks08kcFCJKx4xb12+QU4RAwTjVGyDs9TS//OPLODZ3lpyd7SZNYcwuKExOUg1G6tMgibYBo00oZVK9ZuEf39T4Hi2+u0c4kT5Ja/ziV3aYDAGM9oBWNxAzH0tFscHLXjpWS9fhTPrnjWWiniT52VIXRtOMdT0E+anY1BwceLPB+DKK8ZExhun1PKLafbOHgHPsmLMHCuRN35i+mDWBiWtJ4iDWfp5y+yI1fRbam/+xxgrIy9Zet/8KL41YdZsAIbLz8X5oFY+RM/MAnR/VdjqyzEnl0Zl9JQjotAcLB+b7ccYYE0Jjjx3KnqBSFy78KOn2UsQ2Y+mBp0Z8tLBJyV3lDqE75vwr5OzZyL3EMwjIjjOg43yVkhj4ZnleHCi1u8f+8LSi097zLH9XKDL/trD8UH2lw494uxs8y/6nTrMyM3+Qx0CW1q/aA6bNbx4SRNUkvJWQ0Oa0owGyi4DYrICKZk7JUKTXY186uDlLMTfnI1ReT0Fvf5l8y6AbLT2VbIPjvTHrlgnmB8HtTq+KIg2rvIHx2Va1ryjaQEdP0/FJyKKmg1uRm+Zsc1mtuHqgG3bvuwMFlLgnqGleU5IbtSfp4oH/fSgtrEPD3VsgKRJn8/oe/qa+U34EmcmiW1nAfNAayY4Uzj4dpdplciAHQxAOIMK5k7pJoEUlunK8kp/at0VQIxzc310Q6yAPAxTl36TIgW9xEcuxA0/c="}</script>
+
+    <script>
+      (function () {
+        var form = document.getElementById('form-desbloqueo');
+        var campo = document.getElementById('campo-contrasena');
+        var boton = document.getElementById('boton-desbloquear');
+        var botonMostrar = document.getElementById('boton-mostrar');
+        var error = document.getElementById('mensaje-error');
+
+        function base64ABytes(texto) {
+          var binario = atob(texto);
+          var bytes = new Uint8Array(binario.length);
+          for (var i = 0; i < binario.length; i++) {
+            bytes[i] = binario.charCodeAt(i);
+          }
+          return bytes;
+        }
+
+        function mostrarError(mensaje) {
+          error.textContent = mensaje;
+          error.classList.add('visible');
+        }
+
+        function ocultarError() {
+          error.textContent = '';
+          error.classList.remove('visible');
+        }
+
+        botonMostrar.addEventListener('click', function () {
+          var mostrar = campo.type === 'password';
+          campo.type = mostrar ? 'text' : 'password';
+          botonMostrar.textContent = mostrar ? 'Ocultar' : 'Mostrar';
+          botonMostrar.setAttribute('aria-pressed', mostrar ? 'true' : 'false');
+          campo.focus();
+        });
+
+        campo.addEventListener('input', ocultarError);
+
+        form.addEventListener('submit', function (evento) {
+          evento.preventDefault();
+          ocultarError();
+
+          var contrasena = campo.value;
+          if (!contrasena) {
+            mostrarError('Escribe una contraseña para continuar.');
+            campo.focus();
+            return;
+          }
+
+          if (!window.crypto || !window.crypto.subtle) {
+            mostrarError('Tu navegador no permite el desbloqueo seguro de esta página. Prueba con un navegador actualizado.');
+            return;
+          }
+
+          boton.disabled = true;
+          campo.disabled = true;
+          boton.textContent = 'Desbloqueando…';
+
+          var paquete;
+          try {
+            paquete = JSON.parse(document.getElementById('paquete-encriptado').textContent);
+          } catch (e) {
+            boton.disabled = false;
+            campo.disabled = false;
+            boton.textContent = 'Desbloquear';
+            mostrarError('No se pudo leer el contenido protegido. Vuelve a intentarlo.');
+            return;
+          }
+
+          var codificador = new TextEncoder();
+          var claveMaterial;
+          var clave;
+
+          crypto.subtle.importKey('raw', codificador.encode(contrasena), 'PBKDF2', false, ['deriveKey'])
+            .then(function (material) {
+              claveMaterial = material;
+              return crypto.subtle.deriveKey(
+                {
+                  name: 'PBKDF2',
+                  salt: base64ABytes(paquete.salt),
+                  iterations: paquete.iter || 210000,
+                  hash: 'SHA-256'
+                },
+                claveMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+              );
+            })
+            .then(function (claveDerivada) {
+              clave = claveDerivada;
+              return crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: base64ABytes(paquete.iv) },
+                clave,
+                base64ABytes(paquete.data)
+              );
+            })
+            .then(function (datos) {
+              var texto = new TextDecoder('utf-8').decode(datos);
+              var salida = texto;
+
+              // El editor puede guardar el contenido como campos separados
+              // ({"html": "...", "css": "...", "js": "..."}) en vez de un
+              // documento HTML completo. En ese caso se arma el documento
+              // para que se vea como página y no como texto crudo.
+              try {
+                var contenido = JSON.parse(texto);
+                if (
+                  contenido &&
+                  typeof contenido === 'object' &&
+                  (typeof contenido.html === 'string' ||
+                    typeof contenido.css === 'string' ||
+                    typeof contenido.js === 'string')
+                ) {
+                  var css = typeof contenido.css === 'string' ? contenido.css : '';
+                  var cuerpo = typeof contenido.html === 'string' ? contenido.html : '';
+                  var js = typeof contenido.js === 'string'
+                    ? contenido.js
+                    : (typeof contenido.javascript === 'string' ? contenido.javascript : '');
+                  salida =
+                    '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8" />\n' +
+                    '<meta name="viewport" content="width=device-width, initial-scale=1" />\n' +
+                    '<style>\n' + css.replace(/<\/style/gi, '<\\/style') + '\n</style>\n</head>\n<body>\n' +
+                    cuerpo +
+                    (js ? '\n<script>\n' + js.replace(/<\/script/gi, '<\\/script') + '\n<\/script>\n' : '') +
+                    '\n</body>\n</html>';
+                }
+              } catch (e) {
+                // No es JSON: se interpreta como HTML tal cual.
+              }
+
+              document.open();
+              document.write(salida);
+              document.close();
+            })
+            .catch(function () {
+              boton.disabled = false;
+              campo.disabled = false;
+              boton.textContent = 'Desbloquear';
+              mostrarError('Contraseña incorrecta. Revisa la contraseña e inténtalo de nuevo.');
+              campo.select();
+              campo.focus();
+            });
+        });
+
+        campo.focus();
+      })();
+    </script>
+  </body>
+</html>
